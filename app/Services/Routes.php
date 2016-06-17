@@ -38,6 +38,58 @@ class Routes
     }
 
     /**
+     * 后台的通用路由
+     *
+     * 覆盖通用的路由一定要带上别名，且別名的值为module.class.action
+     *
+     * 即我们使用别名传入了当前请求所属的module,controller和action
+     *
+     * <code>
+     *     Route::get('index-index.html', ['as' => 'module.class.action', 'uses' => 'Admin\IndexController@index']);
+     * </code>
+     *
+     * @access public
+     */
+    public function admin()
+    {
+        self::$app->group(['prefix' => 'admin','domain' => $this->adminDomain], function()
+        {
+            Routes::$app->group(['middleware' => ['csrf']], function()
+            {
+                Routes::$app->get('/', 'Admin\Foundation\LoginController@index');
+                //Routes::$app->controller('login', 'Admin\Foundation\LoginController', ['getOut' => 'foundation.login.out']);
+            });
+
+            Routes::$app->group(['middleware' => ['auth', 'acl', 'alog']], function()
+            {
+                foreach ($this->request_method as $value){
+                    Routes::$app->$value('{module:[A-Za-z0-9\/_]+}-{class:[A-Za-z0-9\/_]+}-{action:[A-Za-z0-9\/_]+}.html', ['as' => 'common', function($module, $class, $action)
+                    {
+                        $class = 'App\\Http\\Controllers\\Admin\\'.ucfirst(strtolower($module)).'\\'.ucfirst(strtolower($class)).'Controller';
+                        if(class_exists($class))
+                        {
+                            $classObject = new $class();
+                            if(method_exists($classObject, $action)) return call_user_func(array($classObject, $action));
+                        }
+                        return abort(404);
+                    }]);
+                }
+                /*Routes::$app->any('{module}-{class}-{action}.html', ['as' => 'common', function($module, $class, $action)
+                {
+                    $class = 'App\\Http\\Controllers\\Admin\\'.ucfirst(strtolower($module)).'\\'.ucfirst(strtolower($class)).'Controller';
+                    if(class_exists($class))
+                    {
+                        $classObject = new $class();
+                        if(method_exists($classObject, $action)) return call_user_func(array($classObject, $action));
+                    }
+                    return abort(404);
+                }])->where(['module' => '[0-9a-z]+', 'class' => '[0-9a-z]+', 'action' => '[0-9a-z]+']);*/
+            });
+        });
+        return $this;
+    }
+
+    /**
      * 商城通用路由
      * 
      * 这里必须要返回一个Illuminate\Http\Response 实例而非一个视图

@@ -15,7 +15,12 @@ $app->configure('sys');
 use App\Services\Routes as RoutesManager;
 $routesManager = new RoutesManager();
 #
-$routesManager->www();
+if (stripos($_SERVER['HTTP_HOST'],'admin')!==false){
+    $routesManager->admin();
+}else{
+    $routesManager->www();
+}
+
 
 
 
